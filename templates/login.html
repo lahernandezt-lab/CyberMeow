@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberMeow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+  <div class="auth-bg">
+    <canvas id="bgCanvas"></canvas>
+  </div>
+
+  <main class="auth-container">
+    <section class="auth-card">
+
+      <div class="avatar-container">
+        <div class="michi-avatar">🐱</div>
+      </div>
+
+
+      <h2 class="auth-title">CyberMeow</h2>
+      <p class="auth-sub">Vuelve a tu mundo y continúa tu historia</p>
+
+      <div id="errorMsg" class="auth-error hidden"></div>
+
+      <div class="field-group">
+        <label class="field-label" for="correo">email</label>
+        <input type="email" id="correo" class="field-input" placeholder="you@email.com" autocomplete="email"/>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="password">password</label>
+        <input type="password" id="password" class="field-input" placeholder="*********" autocomplete="current-password"/>
+      </div>
+
+      <button class="auth-btn" id="loginBtn">
+        <span id="btnText">Iniciar Sesion</span>
+        <span id="btnLoader" class="hidden">Conectando...</span>
+      </button>
+
+      <p class="auth-link">
+        ¿No tienes cuenta?
+        <a href="{{ url_for('auth.register_page') }}">Registrar nuevo michi</a>
+      </p>
+
+      <p class="auth-link">
+        <a href="{{ url_for('auth.olvide_contrasena_page') }}">¿Has olvidado la contraseña?</a>
+      </p>
+
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  <script>
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const correo   = document.getElementById('correo').value.trim();
+      const password = document.getElementById('password').value;
+      if (!correo || !password) {
+        showError('Por favor, completa todos los campos');
+        return;
+      }
+      const result = await authAction('/auth/login', { correo, password }, false);
+      if (result && result.success && result.redirect_to) {
+        window.location.href = result.redirect_to;
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginBtn').click();
+    });
+  </script>
+</body>
+</html>

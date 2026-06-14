@@ -1,0 +1,24 @@
+# Entornos virtuales
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Flask
+instance/
+
+# PyCharm
+.idea/
+
+# Variables de entorno
+.env
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
+Desktop.ini

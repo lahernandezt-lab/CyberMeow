@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ data.titulo }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-logo">
+      <span class="logo-icon">✦</span>
+      <span class="logo-text">{{ data.titulo }}</span>
+    </div>
+    <nav class="topbar-nav">
+
+      <button class="nav-link nav-button" onclick="abrirModalPerfil()">
+         Ver mi perfil
+      </button>
+
+      <button class="nav-link nav-button" onclick="abrirEditor()">
+        Editar Personaje
+      </button>
+
+      <a class="nav-link" href="#">Solicitudes</a>
+      <a class="nav-link" href="#">Amigos</a>
+      <a class="nav-link" href="#">Mensajes</a>
+
+      <a class="nav-link logout-link" href="/auth/logout">⏻ Salir</a>
+
+    </nav>
+
+    <div class="topbar-user">
+      <div class="user-status online">● En línea</div>
+    </div>
+  </header>
+
+
+  <main class="main-layout">
+
+    <section class="world-container" id="worldContainer">
+      <canvas id="worldCanvas"></canvas>
+
+      <div class="world-overlay">
+        <div class="world-controls">
+          <button class="ctrl-btn" id="btnRotateLeft"  title="Rotar izquierda">◀</button>
+          <button class="ctrl-btn" id="btnZoomIn"      title="Zoom +">+</button>
+          <button class="ctrl-btn" id="btnZoomOut"     title="Zoom -">−</button>
+          <button class="ctrl-btn" id="btnRotateRight" title="Rotar derecha">▶</button>
+        </div>
+        <div class="world-label">Sala Principal · <span id="worldUserCount">—</span> usuarios</div>
+      </div>
+    </section>
+
+
+    <aside class="chat-panel" id="chatPanel">
+      <div class="chat-header">
+        <span class="chat-title">💬 Chat de la Sala</span>
+        <span class="chat-online" id="chatOnlineCount">—</span>
+      </div>
+
+      <div class="users-online" id="usersOnline">
+        <div class="user-chip active">
+          <span class="dot"></span>
+          <span>{{ data.usuario }}</span>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg msg-system">✦ Bienvenido, {{ data.usuario }}</div>
+      </div>
+
+      <div class="chat-input-area">
+        <input
+          type="text"
+          class="chat-input"
+          id="chatInput"
+          placeholder="Escribe algo..."
+          maxlength="200"
+          autocomplete="off"
+        />
+        <button class="chat-send" id="chatSend">➤</button>
+      </div>
+    </aside>
+
+
+
+  <div id="privateChatPanel" class="chat-privado-panel hidden">
+    <div class="private-header">
+      <span id="privateChatTitle">💬 Chat privado</span>
+      <button id="privateClose" title="Cerrar">✕</button>
+    </div>
+    <div id="privateMessages" class="chat-messages"></div>
+    <div class="chat-input-area">
+      <input
+        type="text"
+        class="chat-input"
+        id="privateInput"
+        placeholder="Mensaje privado..."
+        maxlength="400"
+        autocomplete="off"
+      />
+      <button class="chat-send" id="privateSend">➤</button>
+    </div>
+  </div>
+
+  </main>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+
+  <script>
+    const SESSION_USERNAME   = {{ data.usuario    | tojson }};
+    const SESSION_USER_COLOR = {{ data.color_gato | tojson }};
+    const SESSION_SOMBRERO   = {{ data.sombrero   | tojson }};
+    const SESSION_COLLAR     = {{ data.collar     | tojson }};
+    const SESSION_GENERO     = {{ data.genero     | tojson }};
+  </script>
+
+
+  <script>
+    function abrirModalPerfil() {
+      document.getElementById('pNombre').textContent   = SESSION_USERNAME   || '—';
+      document.getElementById('pGenero').textContent   = SESSION_GENERO     || '—';
+      document.getElementById('pSombrero').textContent = SESSION_SOMBRERO   || 'ninguno';
+      document.getElementById('pCollar').textContent   = SESSION_COLLAR     || 'ninguno';
+      document.getElementById('pColor').textContent    = SESSION_USER_COLOR || '—';
+      document.getElementById('pColorDot').style.background = SESSION_USER_COLOR || '#888';
+      document.getElementById('modalPerfil').style.display = 'flex';
+    }
+
+    function cerrarModalPerfil() {
+      document.getElementById('modalPerfil').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        cerrarModalPerfil();
+      }
+    });
+  </script>
+
+  <script type="module" src="{{ url_for('static', filename='js/world.js') }}"></script>
+
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <script src="{{ url_for('static', filename='js/chat/chat.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chat/chat-global.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chat/chat-privado.js') }}"></script>
+
+
+  <script src="{{ url_for('static', filename='js/presencia.js') }}"></script>
+
+
+  <div id="modalPerfil" style="display:none;"
+       onclick="if(event.target===this)cerrarModalPerfil()"
+       class="ed-overlay-base">
+    <div id="perfilPanel">
+
+      <div class="ed-header">
+        <span class="ed-title"> Mi Perfil</span>
+        <button class="ed-close" onclick="cerrarModalPerfil()">✕</button>
+      </div>
+
+      <div class="ed-body">
+
+        <div class="ed-preview">
+          <!-- Sin canvas Three.js por ahora: SVG estático del gatico -->
+          <div id="perfilAvatarWrap" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"></div>
+        </div>
+
+        <div class="ed-controls">
+
+          <div class="ed-current" style="margin-bottom:4px;">Datos del personaje</div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
+
+            <div class="perfil-fila-card">
+              <span class="perfil-label-card"> Nombre</span>
+              <span class="perfil-valor-card" id="pNombre">—</span>
+            </div>
+
+            <div class="perfil-fila-card">
+              <span class="perfil-label-card"> Género</span>
+              <span class="perfil-valor-card" id="pGenero">—</span>
+            </div>
+
+            <div class="perfil-fila-card">
+              <span class="perfil-label-card"> Color</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div id="pColorDot" style="width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);"></div>
+                <span class="perfil-valor-card" id="pColor">—</span>
+              </div>
+            </div>
+
+            <div class="perfil-fila-card">
+              <span class="perfil-label-card"> Sombrero</span>
+              <span class="perfil-valor-card" id="pSombrero">—</span>
+            </div>
+
+            <div class="perfil-fila-card">
+              <span class="perfil-label-card"> Collar</span>
+              <span class="perfil-valor-card" id="pCollar">—</span>
+            </div>
+
+            <div class="perfil-fila-card">
+              <span class="perfil-label-card"> Amigos</span>
+              <span class="perfil-valor-card">0</span>
+            </div>
+
+          </div>
+
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid #1e2240;">
+            <span style="font-size:0.72rem;color:#4caf7d;font-weight:600;">● En línea</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div id="editorOverlay" style="display:none;" onclick="if(event.target===this)cerrarEditor()">
+    <div id="editorPanel">
+
+      <div class="ed-header">
+        <span class="ed-title"> Editar mi Gatico</span>
+        <button class="ed-close" onclick="cerrarEditor()">✕</button>
+      </div>
+
+      <div class="ed-body">
+        <div class="ed-preview">
+          <canvas id="editorCanvas"></canvas>
+        </div>
+
+        <div class="ed-controls">
+          <div class="ed-tabs">
+            <button class="ed-tab active" onclick="edSetTab('color',this)"> Color</button>
+            <button class="ed-tab"        onclick="edSetTab('sombrero',this)"> Sombrero</button>
+            <button class="ed-tab"        onclick="edSetTab('collar',this)"> Collar</button>
+            <button class="ed-tab"        onclick="edSetTab('genero',this)"> Género</button>
+          </div>
+
+          <div class="ed-current" id="edCurrentLabel">Color: <strong>—</strong></div>
+
+          <div class="ed-options" id="edOptionsPanel"></div>
+
+          <button class="ed-save" id="edSaveBtn" onclick="guardarCambios()">
+             Guardar cambios
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <style>
+
+    .ed-overlay-base,
+    #editorOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 8, 15, 0.72);
+      backdrop-filter: blur(6px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+
+    #editorPanel {
+      background: #111528;
+      border: 1px solid #2a3580;
+      border-radius: 20px;
+      width: 820px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(79,111,255,0.1);
+      animation: edSlideIn 0.22s ease;
+    }
+
+
+    #perfilPanel {
+      background: #111528;
+      border: 1px solid #2a3580;
+      border-radius: 20px;
+      width: 820px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(79,111,255,0.1);
+      animation: edSlideIn 0.22s ease;
+    }
+
+    @keyframes edSlideIn {
+      from { opacity: 0; transform: scale(0.96) translateY(16px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);    }
+    }
+
+
+    .ed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 22px;
+      border-bottom: 1px solid #1e2240;
+      flex-shrink: 0;
+    }
+    .ed-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #fff;
+    }
+    .ed-close {
+      background: none;
+      border: none;
+      color: #5a6090;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: color 0.12s, background 0.12s;
+    }
+    .ed-close:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+
+    .ed-body {
+      display: flex;
+      gap: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+
+    .ed-preview {
+      flex: 1.1;
+      background: #0d0f1e;
+      border-right: 1px solid #1e2240;
+      min-height: 320px;
+      position: relative;
+    }
+    #editorCanvas { width: 100%; height: 100%; display: block; }
+    #perfilCanvas { width: 100%; height: 100%; display: block; }
+
+
+    .ed-controls {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+
+    .ed-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .ed-tab {
+      flex: 1;
+      border: 1px solid #1e2240;
+      border-radius: 10px;
+      padding: 8px 4px;
+      cursor: pointer;
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: 0.75rem;
+      background: #0d0f1e;
+      color: #5a6090;
+      transition: 0.15s;
+    }
+    .ed-tab:hover  { color: #c8d0ff; border-color: #2a3580; }
+    .ed-tab.active { background: #1a2050; border-color: #4f6fff; color: #fff; }
+
+    .ed-current { font-size: 0.75rem; color: #5a6090; }
+    .ed-current strong { color: #c8d0ff; }
+
+
+    .ed-options {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(13,15,30,0.7);
+      border: 1px solid #1e2240;
+      scrollbar-width: thin;
+      scrollbar-color: #2a3580 transparent;
+    }
+
+    /* ── Colores ── */
+    .ed-color-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
+    }
+    .ed-color-chip {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      outline: 2px solid rgba(255,255,255,0.08);
+      transition: transform 0.15s, border-color 0.15s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .ed-color-chip:hover { transform: scale(1.15); }
+    .ed-color-chip.selected {
+      border-color: #4f6fff;
+      outline-color: #4f6fff;
+      transform: scale(1.2);
+      box-shadow: 0 0 0 3px rgba(79,111,255,0.3);
+    }
+    .ed-color-chip.selected::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 900;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── Cards de accesorios ── */
+    .ed-option-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 8px;
+    }
+    .ed-option-card {
+      background: #0d0f1e;
+      border-radius: 10px;
+      padding: 9px 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: 0.15s;
+      border: 1px solid #1e2240;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #5a6090;
+      line-height: 1.3;
+    }
+    .ed-option-card:hover   { border-color: #2a3580; color: #c8d0ff; transform: translateY(-2px); }
+    .ed-option-card.selected { border-color: #4f6fff; background: #1a2050; color: #fff; }
+    .ed-option-card .opt-icon { font-size: 1.3rem; display: block; margin-bottom: 4px; }
+
+    /* ── Género ── */
+    .ed-gender { display: flex; gap: 10px; }
+    .ed-gender-btn {
+      flex: 1; padding: 13px;
+      border: 1px solid #1e2240;
+      background: #0d0f1e;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #5a6090;
+      transition: 0.15s;
+    }
+    .ed-gender-btn:hover   { border-color: #2a3580; color: #c8d0ff; }
+    .ed-gender-btn.selected { background: #1a2050; border-color: #4f6fff; color: #fff; }
+
+    /* ── Botón guardar ── */
+    .ed-save {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, #4f6fff, #b06fff);
+      color: #fff;
+      border: none;
+      padding: 13px;
+      width: 100%;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+      box-shadow: 0 4px 20px rgba(79,111,255,0.3);
+      flex-shrink: 0;
+    }
+    .ed-save:hover   { filter: brightness(1.1); }
+    .ed-save:active  { transform: scale(0.98); }
+    .ed-save:disabled { opacity: 0.5; cursor: default; filter: none; }
+
+    /* ── Perfil cards ── */
+    .perfil-fila-card {
+      background: #0d0f1e;
+      border: 1px solid #1e2240;
+      border-radius: 12px;
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .perfil-label-card { font-size: 0.75rem; color: #5a6090; }
+    .perfil-valor-card  { font-size: 0.85rem; font-weight: 600; color: #c8d0ff; }
+
+
+    /* ── Panel de chat privado ── */
+    .chat-privado-panel {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 300px;
+      max-height: 420px;
+      background: #111528;
+      border: 1px solid #2a3580;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      z-index: 200;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+    .chat-privado-panel.hidden { display: none; }
+
+    .private-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #1e2240;
+      font-family: 'Exo 2', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #c8d0ff;
+      flex-shrink: 0;
+    }
+    #privateClose {
+      background: none;
+      border: none;
+      color: #5a6090;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color 0.12s;
+    }
+    #privateClose:hover { color: #fff; }
+
+    /* Chips clicables */
+    .user-chip:not(.active) { cursor: pointer; }
+    .user-chip:not(.active):hover {
+      background: rgba(79,111,255,0.12);
+      border-radius: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .ed-body        { flex-direction: column; }
+      .ed-preview     { min-height: 200px; border-right: none; border-bottom: 1px solid #1e2240; }
+    }
+  </style>
+
+
+  <script type="module">
+    import { GaticoFactory } from '/static/js/gaticos/GaticoFactory.js';
+    import { GATICO_COLORS } from '/static/js/gaticos/GaticoColors.js';
+
+
+    const edEstado = {
+      color:    SESSION_USER_COLOR || 'naranja',
+      sombrero: SESSION_SOMBRERO   || 'ninguno',
+      collar:   SESSION_COLLAR     || 'ninguno',
+      genero:   SESSION_GENERO     || 'Macho',
+    };
+
+    const SOMBREROS = {
+      ninguno:       { label: 'Sin sombrero',    icon: '🚫' },
+      cumpleanos:    { label: 'Cumpleaños',       icon: '🎂' },
+      negro:         { label: 'Sombrero Negro',   icon: '🎩' },
+      paja:          { label: 'Sombrero de Paja', icon: '👒' },
+      casco_militar: { label: 'Casco Militar',    icon: '🪖' },
+      gorra:         { label: 'Gorra',            icon: '🧢' },
+    };
+    const COLLARES = {
+      ninguno:      { label: 'Sin collar',   icon: '🚫' },
+      rojo:         { label: 'Collar Rojo',  icon: '🔴' },
+      azul:         { label: 'Collar Azul',  icon: '🔵' },
+      corbata_roja: { label: 'Corbata Roja', icon: '👔' },
+      corbata_azul: { label: 'Corbata Azul', icon: '👔' },
+    };
+
+
+    let edRenderer, edScene, edCamera, edGatico, edAnimId;
+
+    function initEditorPreview() {
+      const canvas = document.getElementById('editorCanvas');
+      const parent = canvas.parentElement;
+
+      edRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      edRenderer.setPixelRatio(window.devicePixelRatio);
+      edRenderer.shadowMap.enabled = true;
+
+      edScene = new THREE.Scene();
+      edScene.background = new THREE.Color(0x0d0f1e);
+
+      edCamera = new THREE.OrthographicCamera(-1.8, 1.8, 1.8, -1.8, 0.1, 50);
+      edCamera.position.set(4, 4, 4);
+      edCamera.lookAt(0, 0.4, 0);
+
+      edScene.add(new THREE.AmbientLight(0x8899ff, 0.9));
+      const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+      sun.position.set(4, 8, 4);
+      sun.castShadow = true;
+      edScene.add(sun);
+
+      function resize() {
+        edRenderer.setSize(parent.clientWidth, parent.clientHeight);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      rebuildEdGatico();
+
+      let t = 0;
+      function loop() {
+        edAnimId = requestAnimationFrame(loop);
+        t += 0.016;
+        if (edGatico) edGatico.update(t);
+        edRenderer.render(edScene, edCamera);
+      }
+      loop();
+    }
+
+    function rebuildEdGatico() {
+      if (edGatico) edGatico.destroy();
+      edGatico = GaticoFactory.crear({
+        nombre:   SESSION_USERNAME,
+        color:    edEstado.color,
+        genero:   edEstado.genero,
+        sombrero: edEstado.sombrero,
+        collar:   edEstado.collar,
+        scene:    edScene,
+      });
+      edGatico.setPosition(0, 0, 0);
+    }
+
+    function destroyEditorPreview() {
+      if (edAnimId) cancelAnimationFrame(edAnimId);
+      if (edGatico) edGatico.destroy();
+      if (edRenderer) edRenderer.dispose();
+      edRenderer = edScene = edCamera = edGatico = null;
+    }
+
+    // ── Tabs ─────────────────────────────────────────────────────────────
+    let edTab = 'color';
+
+    window.edSetTab = function(tab, btn) {
+      edTab = tab;
+      document.querySelectorAll('.ed-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderEdOptions();
+    };
+
+    function renderEdOptions() {
+      const panel = document.getElementById('edOptionsPanel');
+      const label = document.getElementById('edCurrentLabel');
+      panel.innerHTML = '';
+
+      if (edTab === 'color') {
+        label.innerHTML = `Color: <strong>${GATICO_COLORS[edEstado.color]?.label ?? edEstado.color}</strong>`;
+        const grid = document.createElement('div');
+        grid.className = 'ed-color-grid';
+        Object.entries(GATICO_COLORS).forEach(([key, data]) => {
+          const chip = document.createElement('div');
+          chip.className = 'ed-color-chip' + (key === edEstado.color ? ' selected' : '');
+          chip.title = data.label;
+          chip.style.background = '#' + data.hex.toString(16).padStart(6, '0');
+          chip.addEventListener('click', () => {
+            edEstado.color = key;
+            if (edGatico) edGatico.setColor(key);
+            label.innerHTML = `Color: <strong>${data.label}</strong>`;
+            panel.querySelectorAll('.ed-color-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+          });
+          grid.appendChild(chip);
+        });
+        panel.appendChild(grid);
+
+      } else if (edTab === 'sombrero') {
+        label.innerHTML = `Sombrero: <strong>${SOMBREROS[edEstado.sombrero]?.label}</strong>`;
+        const grid = document.createElement('div');
+        grid.className = 'ed-option-grid';
+        Object.entries(SOMBREROS).forEach(([key, data]) => {
+          const card = document.createElement('div');
+          card.className = 'ed-option-card' + (key === edEstado.sombrero ? ' selected' : '');
+          card.innerHTML = `<span class="opt-icon">${data.icon}</span>${data.label}`;
+          card.addEventListener('click', () => {
+            edEstado.sombrero = key;
+            rebuildEdGatico();
+            label.innerHTML = `Sombrero: <strong>${data.label}</strong>`;
+            panel.querySelectorAll('.ed-option-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+          });
+          grid.appendChild(card);
+        });
+        panel.appendChild(grid);
+
+      } else if (edTab === 'collar') {
+        label.innerHTML = `Collar: <strong>${COLLARES[edEstado.collar]?.label}</strong>`;
+        const grid = document.createElement('div');
+        grid.className = 'ed-option-grid';
+        Object.entries(COLLARES).forEach(([key, data]) => {
+          const card = document.createElement('div');
+          card.className = 'ed-option-card' + (key === edEstado.collar ? ' selected' : '');
+          card.innerHTML = `<span class="opt-icon">${data.icon}</span>${data.label}`;
+          card.addEventListener('click', () => {
+            edEstado.collar = key;
+            rebuildEdGatico();
+            label.innerHTML = `Collar: <strong>${data.label}</strong>`;
+            panel.querySelectorAll('.ed-option-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+          });
+          grid.appendChild(card);
+        });
+        panel.appendChild(grid);
+
+      } else if (edTab === 'genero') {
+        label.innerHTML = `Género: <strong>${edEstado.genero}</strong>`;
+        const sel = document.createElement('div');
+        sel.className = 'ed-gender';
+        ['Macho', 'Hembra'].forEach(g => {
+          const btn = document.createElement('button');
+          btn.className = 'ed-gender-btn' + (edEstado.genero === g ? ' selected' : '');
+          btn.textContent = g === 'Macho' ? '♂ Macho' : '♀ Hembra';
+          btn.addEventListener('click', () => {
+            edEstado.genero = g;
+            rebuildEdGatico();
+            label.innerHTML = `Género: <strong>${g}</strong>`;
+            sel.querySelectorAll('.ed-gender-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+          });
+          sel.appendChild(btn);
+        });
+        panel.appendChild(sel);
+      }
+    }
+
+
+    window.abrirEditor = function() {
+      edEstado.color    = SESSION_USER_COLOR || 'naranja';
+      edEstado.sombrero = SESSION_SOMBRERO   || 'ninguno';
+      edEstado.collar   = SESSION_COLLAR     || 'ninguno';
+      edEstado.genero   = SESSION_GENERO     || 'Macho';
+
+      document.querySelectorAll('.ed-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
+      edTab = 'color';
+
+      document.getElementById('editorOverlay').style.display = 'flex';
+
+      if (!edRenderer) initEditorPreview();
+      else rebuildEdGatico();
+
+      renderEdOptions();
+    };
+
+    window.cerrarEditor = function() {
+      document.getElementById('editorOverlay').style.display = 'none';
+      destroyEditorPreview();
+    };
+
+    // ── Guardar ───────────────────────────────────────────────────────────
+    window.guardarCambios = async function() {
+      const btn = document.getElementById('edSaveBtn');
+      btn.disabled = true;
+      btn.textContent = ' Guardando...';
+
+      try {
+        const res = await fetch('/api/gaticos/editar', {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            color:    edEstado.color,
+            genero:   edEstado.genero,
+            sombrero: edEstado.sombrero,
+            collar:   edEstado.collar,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.textContent = ' ¡Guardado!';
+          setTimeout(() => { window.location.reload(); }, 900);
+        } else {
+          btn.textContent = ' Error: ' + (data.error || 'inténtalo de nuevo');
+          btn.disabled = false;
+        }
+      } catch {
+        btn.textContent = ' Error de red';
+        btn.disabled = false;
+      }
+    };
+
+    // ── Avatar SVG estático en el perfil ─────────────────────────────────
+    // Se pinta cuando se abre el modal (desde el script no-módulo),
+    // pero también lo pintamos aquí por si GATICO_COLORS está disponible.
+    window._pintarAvatarPerfil = function() {
+      const color = SESSION_USER_COLOR || 'naranja';
+      const hex = GATICO_COLORS[color]
+        ? '#' + GATICO_COLORS[color].hex.toString(16).padStart(6, '0')
+        : '#e8891a';
+      const wrap = document.getElementById('perfilAvatarWrap');
+      if (!wrap) return;
+      wrap.innerHTML = `
+        <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" width="150" height="180">
+          <ellipse cx="50" cy="88" rx="30" ry="22" fill="${hex}" opacity=".9"/>
+          <circle cx="50" cy="54" r="24" fill="${hex}"/>
+          <polygon points="28,37 18,12 38,30" fill="${hex}"/>
+          <polygon points="72,37 82,12 62,30" fill="${hex}"/>
+          <circle cx="43" cy="52" r="5"   fill="#fff" opacity=".85"/>
+          <circle cx="57" cy="52" r="5"   fill="#fff" opacity=".85"/>
+          <circle cx="44" cy="53" r="2.5" fill="#1a1a2e"/>
+          <circle cx="58" cy="53" r="2.5" fill="#1a1a2e"/>
+          <ellipse cx="50" cy="61" rx="5" ry="3" fill="#e8a0b0" opacity=".85"/>
+          <line x1="34" y1="59" x2="20" y2="57" stroke="#ccc" stroke-width="1" opacity=".5"/>
+          <line x1="34" y1="62" x2="20" y2="62" stroke="#ccc" stroke-width="1" opacity=".5"/>
+          <line x1="66" y1="59" x2="80" y2="57" stroke="#ccc" stroke-width="1" opacity=".5"/>
+          <line x1="66" y1="62" x2="80" y2="62" stroke="#ccc" stroke-width="1" opacity=".5"/>
+        </svg>`;
+    };
+  </script>
+
+
+  <script>
+
+    setTimeout(() => {
+      if (typeof window._pintarAvatarPerfil === 'function') {
+        window._pintarAvatarPerfil();
+      }
+    }, 100);
+
+
+    const _origAbrir = window.abrirModalPerfil;
+    window.abrirModalPerfil = function() {
+      _origAbrir();
+      if (typeof window._pintarAvatarPerfil === 'function') {
+        window._pintarAvatarPerfil();
+      }
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ perfil_usuario.nombre_usuario }} CyberMeow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/perfil.css') }}">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <a class="topbar-logo" href="/">
+      <span class="logo-icon">✦</span>
+      <span>Nuestro Espacio</span>
+    </a>
+    <a class="topbar-back" href="/">← Volver al mundo</a>
+  </header>
+
+  <main class="perfil-page">
+
+    <!-- ── HERO ──────────────────────────────────────────────────────────── -->
+    <section class="perfil-hero">
+
+      <!-- Avatar SVG del gatico -->
+      <div class="hero-avatar" id="heroAvatar">
+        {% if online %}<div class="online-ring"></div>{% endif %}
+      </div>
+
+      <div class="hero-info">
+        <h1 class="hero-nombre">{{ perfil_usuario.nombre_usuario }}</h1>
+
+        <div class="hero-estado">
+          <span class="estado-dot {% if online %}online{% endif %}"></span>
+          <span>{% if online %}En línea ahora{% else %}Desconectado{% endif %}</span>
+          {% if perfil_usuario.fecha_registro %}
+            &nbsp;·&nbsp; Miembro desde {{ perfil_usuario.fecha_registro.strftime('%b %Y') }}
+          {% endif %}
+        </div>
+
+        <div class="hero-tags">
+          {% if gatico %}
+            <span class="hero-tag">{{ gatico.genero }}</span>
+            <span class="hero-tag tag-color">Color: {{ gatico.color }}</span>
+            {% if gatico.sombrero and gatico.sombrero != 'ninguno' %}
+              <span class="hero-tag">🎩 {{ gatico.sombrero }}</span>
+            {% endif %}
+            {% if gatico.collar and gatico.collar != 'ninguno' %}
+              <span class="hero-tag">📿 {{ gatico.collar }}</span>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Acciones según relación -->
+      <div class="hero-actions">
+        {% if es_propio %}
+          <a class="btn btn-primary" href="/api/gaticos/creador">🎨 Editar personaje</a>
+        {% elif relacion == 'ninguna' %}
+          <button class="btn btn-primary" id="btnAgregar"
+            onclick="enviarSolicitud('{{ perfil_usuario.nombre_usuario }}')">
+            ➕ Agregar amigo
+          </button>
+        {% elif relacion == 'pendiente_enviada' %}
+          <span class="btn btn-disabled">⏳ Solicitud enviada</span>
+        {% elif relacion == 'pendiente_recibida' %}
+          <button class="btn btn-primary" onclick="aceptarSolicitud()">✔ Aceptar solicitud</button>
+        {% elif relacion == 'amigos' %}
+          <span class="btn btn-disabled">✦ Amigos</span>
+          <button class="btn btn-danger" onclick="eliminarAmigo('{{ perfil_usuario.nombre_usuario }}')">
+            Eliminar amigo
+          </button>
+        {% endif %}
+      </div>
+
+    </section>
+
+
+    <!-- ── GRID ──────────────────────────────────────────────────────────── -->
+    <div class="perfil-grid">
+
+      <!-- Datos del gatico -->
+      <div class="perfil-card">
+        <span class="card-title">🐱 Personaje</span>
+        {% if gatico %}
+          <div class="gatico-datos">
+            <div class="dato-fila">
+              <span class="dato-label">Nombre</span>
+              <span class="dato-valor">{{ gatico.username }}</span>
+            </div>
+            <div class="dato-fila">
+              <span class="dato-label">Color</span>
+              <span class="dato-valor color-swatch">
+                <span class="swatch-dot" id="swatchColor"></span>
+                {{ gatico.color | capitalize }}
+              </span>
+            </div>
+            <div class="dato-fila">
+              <span class="dato-label">Género</span>
+              <span class="dato-valor">{{ gatico.genero }}</span>
+            </div>
+            <div class="dato-fila">
+              <span class="dato-label">Sombrero</span>
+              <span class="dato-valor">{{ gatico.sombrero | capitalize }}</span>
+            </div>
+            <div class="dato-fila">
+              <span class="dato-label">Collar</span>
+              <span class="dato-valor">{{ gatico.collar | capitalize }}</span>
+            </div>
+          </div>
+        {% else %}
+          <p class="empty-state">Este usuario aún no tiene personaje.</p>
+        {% endif %}
+      </div>
+
+      <!-- Estadísticas -->
+      <div class="perfil-card">
+        <span class="card-title">📊 Estadísticas</span>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value">{{ total_mensajes }}</span>
+            <span class="stat-label">Mensajes</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ amigos | length }}</span>
+            <span class="stat-label">Amigos</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">
+              {% if online %}🟢{% else %}⚫{% endif %}
+            </span>
+            <span class="stat-label">Estado</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">
+              {% if perfil_usuario.fecha_registro %}
+                {{ ((now - perfil_usuario.fecha_registro).days) }}
+              {% else %}—{% endif %}
+            </span>
+            <span class="stat-label">Días miembro</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Amigos (ocupa columna completa) -->
+      <div class="perfil-card" style="grid-column: 1 / -1;">
+        <span class="card-title">👥 Amigos ({{ amigos | length }})</span>
+        {% if amigos %}
+          <div class="amigos-lista" id="amigosList">
+            {% for amigo in amigos %}
+              <a class="amigo-item" href="/perfil/{{ amigo.username }}">
+                <div class="amigo-avatar" data-color="{{ amigo.color }}" data-name="{{ amigo.username }}"></div>
+                <span class="amigo-nombre">{{ amigo.username }}</span>
+                <span class="amigo-online {% if amigo.online %}online{% endif %}"></span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty-state">Aún no hay amigos aquí.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast de notificaciones -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Variables de Jinja para JS -->
+  <script>
+    const PERFIL_COLOR   = {{ (gatico.color if gatico else 'gris') | tojson }};
+    const PERFIL_GENERO  = {{ (gatico.genero if gatico else 'Macho') | tojson }};
+    const YO_USERNAME    = {{ yo_username | tojson }};
+    const ES_PROPIO      = {{ es_propio | tojson }};
+  </script>
+
+  <script>
+    // ── Mini SVG de gatico (igual que en world.js pero simplificado) ─────────
+    function miniGaticoSVG(color, size = 80) {
+      return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        <ellipse cx="40" cy="55" rx="24" ry="18" fill="${color}" opacity=".9"/>
+        <circle cx="40" cy="34" r="18" fill="${color}"/>
+        <polygon points="22,24 14,6 30,18" fill="${color}"/>
+        <polygon points="58,24 66,6 50,18" fill="${color}"/>
+        <circle cx="34" cy="33" r="4" fill="#fff" opacity=".85"/>
+        <circle cx="46" cy="33" r="4" fill="#fff" opacity=".85"/>
+        <circle cx="35" cy="34" r="1.8" fill="#1a1a2e"/>
+        <circle cx="47" cy="34" r="1.8" fill="#1a1a2e"/>
+        <ellipse cx="40" cy="40" rx="4" ry="2.5" fill="#e8a0b0" opacity=".85"/>
+        <line x1="28" y1="39" x2="17" y2="37" stroke="#aaa" stroke-width=".8" opacity=".6"/>
+        <line x1="28" y1="41" x2="17" y2="41" stroke="#aaa" stroke-width=".8" opacity=".6"/>
+        <line x1="52" y1="39" x2="63" y2="37" stroke="#aaa" stroke-width=".8" opacity=".6"/>
+        <line x1="52" y1="41" x2="63" y2="41" stroke="#aaa" stroke-width=".8" opacity=".6"/>
+      </svg>`;
+    }
+
+    // Tabla de colores del catálogo (igual que GaticoColors.js)
+    const COLOR_MAP = {
+      naranja: '#e8833a', gris: '#9e9e9e', negro: '#2d2d2d',
+      blanco: '#f0f0f0', cafe: '#795548', azul: '#42a5f5',
+      rosado: '#f48fb1', morado: '#ab47bc', verde: '#66bb6a',
+      amarillo: '#ffca28',
+    };
+
+    function resolveColor(name) {
+      return COLOR_MAP[name?.toLowerCase()] || name || '#888';
+    }
+
+    // Renderizar avatar del hero
+    const heroAvatar = document.getElementById('heroAvatar');
+    const heroSVGWrap = document.createElement('div');
+    heroSVGWrap.innerHTML = miniGaticoSVG(resolveColor(PERFIL_COLOR), 90);
+    heroAvatar.appendChild(heroSVGWrap.firstChild);
+
+    // Color swatch
+    const swatch = document.getElementById('swatchColor');
+    if (swatch) swatch.style.background = resolveColor(PERFIL_COLOR);
+
+    // Avatares mini de amigos
+    document.querySelectorAll('.amigo-avatar[data-color]').forEach(el => {
+      const color = resolveColor(el.dataset.color);
+      el.innerHTML = miniGaticoSVG(color, 34);
+    });
+
+    // ── Toast ──────────────────────────────────────────────────────────────
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (isError ? ' error' : '');
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Amistades ──────────────────────────────────────────────────────────
+    async function enviarSolicitud(username) {
+      const btn = document.getElementById('btnAgregar');
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch('/perfil/api/solicitud', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receptor_username: username })
+        });
+        const data = await r.json();
+        if (data.ok) {
+          showToast('¡Solicitud enviada!');
+          if (btn) { btn.textContent = '⏳ Solicitud enviada'; btn.className = 'btn btn-disabled'; }
+        } else {
+          showToast(data.error || 'Error al enviar solicitud', true);
+          if (btn) btn.disabled = false;
+        }
+      } catch { showToast('Error de red', true); if (btn) btn.disabled = false; }
+    }
+
+    async function aceptarSolicitud() {
+      // Obtenemos el amistad_id desde el servidor
+      const r = await fetch('/perfil/api/pendientes');
+      const lista = await r.json();
+      const perfilUsername = {{ perfil_usuario.nombre_usuario | tojson }};
+      const rel = lista.find(p => p.username === perfilUsername);
+      if (!rel) return showToast('No se encontró la solicitud', true);
+
+      const r2 = await fetch('/perfil/api/aceptar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amistad_id: rel.amistad_id })
+      });
+      const data = await r2.json();
+      if (data.ok) { showToast('¡Ahora son amigos!'); setTimeout(() => location.reload(), 1200); }
+      else showToast(data.error || 'Error', true);
+    }
+
+    async function eliminarAmigo(username) {
+      if (!confirm(`¿Eliminar a ${username} de tus amigos?`)) return;
+      const r = await fetch('/perfil/api/eliminar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otro_username: username })
+      });
+      const data = await r.json();
+      if (data.ok) { showToast('Amigo eliminado'); setTimeout(() => location.reload(), 1200); }
+      else showToast(data.error || 'Error', true);
+    }
+  </script>
+
+</body>
+</html>

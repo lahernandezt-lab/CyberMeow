@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberMeow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+  <div class="auth-bg"><canvas id="bgCanvas"></canvas></div>
+
+  <main class="auth-container">
+    <section class="auth-card">
+
+      <div class="avatar-container">
+        <div class="michi-avatar">🔑</div>
+      </div>
+
+      <div class="auth-logo">
+        <span class="logo-gem">◈</span>
+        <span class="logo-name">Nuestro Espacio</span>
+      </div>
+
+      <h2 class="auth-title">Restablecer contraseña</h2>
+      <p class="auth-sub">
+        Introduce tu dirección de correo electrónico y te enviaremos
+        un enlace para que restablezcas la contraseña.
+      </p>
+
+      <div id="errorMsg"   class="auth-error   hidden"></div>
+      <div id="successMsg" class="auth-success hidden"></div>
+
+      <div class="field-group">
+        <label class="field-label" for="correo">Correo electrónico</label>
+        <input type="email" id="correo" class="field-input"
+               placeholder="tu@correo.com" autocomplete="email" required/>
+      </div>
+
+      <button class="auth-btn" id="resetBtn">
+        <span id="btnText">Enviar enlace</span>
+        <span id="btnLoader" class="hidden">Enviando...</span>
+      </button>
+
+      <p class="auth-link">
+        <a href="{{ url_for('auth.login_page') }}">← Volver al login</a>
+      </p>
+
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  <script>
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      const correo = document.getElementById('correo').value.trim();
+
+      if (!correo) {
+        showError('El correo es obligatorio');
+        document.getElementById('correo').focus();
+        return;
+      }
+
+      const result = await authAction('/auth/olvide-contrasena', { correo }, false);
+
+      if (result && result.success) {
+        showSuccess('¡Listo! Revisa tu correo y sigue el enlace para crear una nueva contraseña.');
+        document.getElementById('resetBtn').disabled = true;
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('resetBtn').click();
+    });
+  </script>
+</body>
+</html>

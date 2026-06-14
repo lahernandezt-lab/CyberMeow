@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberMeow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+  <div class="auth-bg">
+    <canvas id="bgCanvas"></canvas>
+  </div>
+
+  <main class="auth-container">
+    <section class="auth-card">
+
+      <h1 class="auth-title">Verifica tu correo</h1>
+      <p class="auth-sub">
+        Te enviamos un enlace de verificacion. Abrelo desde tu correo y esta pagina te llevara automaticamente al creador de gatico.
+      </p>
+      <p class="auth-link">Puedes dejar esta ventana abierta mientras verificas tu cuenta.</p>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+  <script>
+    async function revisarVerificacion() {
+      try {
+        const response = await fetch('/auth/estado-verificacion');
+        const data = await response.json();
+
+        if (data.verificado && data.redirect_to) {
+          window.location.href = data.redirect_to;
+        }
+      } catch (error) {
+        console.log('Esperando verificacion...');
+      }
+    }
+
+    revisarVerificacion();
+    setInterval(revisarVerificacion, 3000);
+  </script>
+</body>
+</html>

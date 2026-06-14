@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberMeow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+
+<body>
+  <div class="auth-bg">
+    <canvas id="bgCanvas"></canvas>
+  </div>
+
+  <main class="auth-container">
+    <section class="auth-card auth-card--register">
+
+      <div class="avatar-container">
+        <div class="michi-avatar michi-avatar--pink">🐾</div>
+      </div>
+
+
+
+      <h2 class="auth-title auth-title--pink">Nuevo Michi</h2>
+      <p class="auth-sub">Crea tu identidad en el mundo</p>
+
+      <div id="errorMsg"   class="auth-error   hidden"></div>
+      <div id="successMsg" class="auth-success hidden"></div>
+
+      <div class="field-group">
+        <label class="field-label field-label--pink" for="nombre_usuario">User name</label>
+        <input type="text" id="nombre_usuario" class="field-input field-input--pink"
+               placeholder="you_Name_Michi" maxlength="30" autocomplete="off"/>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label field-label--pink" for="correo">email</label>
+        <input type="email" id="correo" class="field-input field-input--pink"
+               placeholder="you@email.com" autocomplete="email"/>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label field-label--pink" for="password">Password</label>
+        <input type="password" id="password" class="field-input field-input--pink"
+               placeholder="Secretpurrtword" autocomplete="new-password"/>
+        <div class="strength-bar">
+            <div class="strength-fill" id="strengthFill"></div>
+
+        </div>
+          <p class="strength-label" id="strengthLabel"></p>
+      </div>
+
+      <button class="auth-btn auth-btn--cyan" id="registerBtn">
+        <span id="btnText">Crear Cuenta</span>
+        <span id="btnLoader" class="hidden">Creando cuenta...</span>
+      </button>
+
+      <p class="auth-link">
+        ¿Ya tienes cuenta?
+        <a href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
+      </p>
+
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  <script>
+      const NIVELES = [
+  { w: '15%',  color: '#ff4466', texto: 'Muy débil'   },
+  { w: '35%',  color: '#ff7a00', texto: 'Débil'       },
+  { w: '60%',  color: '#ffcc00', texto: 'Aceptable'   },
+  { w: '82%',  color: '#00f3ff', texto: 'Fuerte'      },
+  { w: '100%', color: '#00f076', texto: 'Muy fuerte'  },
+];
+
+document.getElementById('password').addEventListener('input', () => {
+  const val    = document.getElementById('password').value;
+  const fill   = document.getElementById('strengthFill');
+  const label  = document.getElementById('strengthLabel');
+
+  if (!val) {
+    fill.style.width  = '0%';
+    label.textContent = '';
+    return;
+  }
+
+  const result = zxcvbn(val);
+  const nivel  = NIVELES[result.score];
+
+  fill.style.width      = nivel.w;
+  fill.style.background = nivel.color;
+  label.textContent     = nivel.texto;
+  label.style.color     = nivel.color;
+
+
+  const feedback = result.feedback.suggestions[0] || result.feedback.warning;
+  if (feedback && result.score < 3) {
+    label.textContent = `${nivel.texto} — ${feedback}`;
+  }
+});
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+      const nombre_usuario = document.getElementById('nombre_usuario').value.trim();
+      const correo         = document.getElementById('correo').value.trim();
+      const password       = document.getElementById('password').value;
+
+      if (!nombre_usuario || !correo || !password) {
+        showError('Por favor, completa todos los campos');
+        return;
+      }
+      if (password.length < 6) {
+        showError('La contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+
+      const result = await authAction('/auth/register', { nombre_usuario, correo, password }, false);
+     if (result && result.success) {
+         showSuccess('Cuenta creada. Revisa tu correo para verificarla.');
+         setTimeout(() => {
+             window.location.href = result.redirect_to || '/auth/revisar-correo';
+  }, 1500);
+}
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('registerBtn').click();
+    });
+  </script>
+</body>
+</html>

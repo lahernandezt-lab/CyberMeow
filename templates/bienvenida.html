@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberMeow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+  <style>
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+
+    .scene {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px;
+      max-width: 560px;
+    }
+
+
+    .michi-intro {
+      font-size: 5rem;
+      opacity: 0;
+      transform: scale(0.4) translateY(30px);
+      animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+      filter: drop-shadow(0 0 24px rgba(255,179,124,0.5));
+      margin-bottom: 28px;
+    }
+
+
+    .deco-line {
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #FFB37C, #FFD1DC, transparent);
+      border-radius: 2px;
+      animation: expandLine 0.8s ease 0.9s forwards;
+      margin-bottom: 32px;
+    }
+
+
+    .titulo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.7s ease 1.0s forwards;
+      text-shadow: 0 0 30px rgba(255,179,124,0.4);
+      margin-bottom: 8px;
+    }
+
+    .titulo span {
+      color: #FFB37C;
+    }
+
+
+    .nombre-usuario {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1rem, 3vw, 1.3rem);
+      font-weight: 400;
+      color: #FFD1DC;
+      letter-spacing: 0.15em;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 1.2s forwards;
+      margin-bottom: 36px;
+    }
+
+
+    .intro-texto {
+      color: rgba(255,255,255,0.75);
+      font-size: clamp(0.88rem, 2.5vw, 1rem);
+      font-weight: 300;
+      line-height: 1.8;
+      max-width: 440px;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 1.5s forwards;
+      margin-bottom: 16px;
+    }
+
+    .intro-texto.delay2 {
+      animation-delay: 1.8s;
+      margin-bottom: 48px;
+    }
+
+    .intro-texto strong {
+      color: #FFD1DC;
+      font-weight: 600;
+    }
+
+
+    .btn-comenzar {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #3D2B1F;
+      background: linear-gradient(135deg, #FFD1DC, #FFB37C);
+      border: none;
+      padding: 16px 40px;
+      border-radius: 50px;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(16px) scale(0.95);
+      animation: fadeUp 0.7s cubic-bezier(0.34, 1.3, 0.64, 1) 2.2s forwards;
+      box-shadow: 0 8px 32px rgba(255,179,124,0.35);
+      transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-comenzar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn-comenzar:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 40px rgba(255,179,124,0.5);
+      filter: brightness(1.05);
+    }
+
+    .btn-comenzar:hover::before { opacity: 1; }
+    .btn-comenzar:active { transform: scale(0.98); }
+
+
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+    }
+
+    .paw {
+      position: absolute;
+      font-size: 1.2rem;
+      opacity: 0;
+      animation: floatPaw linear infinite;
+      filter: blur(0.5px);
+    }
+
+
+    @keyframes popIn {
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes expandLine {
+      to { width: 200px; }
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes floatPaw {
+      0%   { opacity: 0;   transform: translateY(100vh) rotate(0deg)   scale(0.8); }
+      10%  { opacity: 0.3; }
+      90%  { opacity: 0.15; }
+      100% { opacity: 0;   transform: translateY(-10vh) rotate(360deg) scale(1.2); }
+    }
+
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 100%);
+      pointer-events: none;
+      z-index: 6;
+    }
+  </style>
+</head>
+<body>
+
+
+  <div class="auth-bg"><canvas id="bgCanvas"></canvas></div>
+
+
+  <div class="particles" id="particles"></div>
+
+
+  <main class="scene">
+    <div class="michi-intro">🐱</div>
+    <div class="deco-line"></div>
+
+    <h1 class="titulo">Bienvenido a <span>Nuestro</span> Espacio</h1>
+    <p class="nombre-usuario">{{ usuario }}</p>
+
+    <p class="intro-texto">
+      Este es un lugar donde los gatitos conviven, exploran y crean recuerdos juntos.
+      Cada rincón del hotel tiene algo nuevo por descubrir.
+    </p>
+
+    <p class="intro-texto delay2">
+      Antes de entrar, necesitas <strong>crear tu gatico</strong> —
+      el compañero que te representará en este mundo.
+      Elige su color, su género, y dale vida.
+    </p>
+
+    <a href="{{ url_for('gaticos.crear_personaje_page') }}" class="btn-comenzar">
+      🐾 &nbsp; Crear mi gatico
+    </a>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+  <script>
+
+    const pawEmojis = ['🐾', '✨', '⭐', '🌟', '💫'];
+    const container = document.getElementById('particles');
+
+    function spawnPaw() {
+      const el = document.createElement('span');
+      el.className = 'paw';
+      el.textContent = pawEmojis[Math.floor(Math.random() * pawEmojis.length)];
+
+      const size     = 0.7 + Math.random() * 1.2;
+      const duration = 6 + Math.random() * 8;
+      const delay    = Math.random() * 4;
+      const left     = Math.random() * 100;
+
+      el.style.cssText = `
+        left: ${left}%;
+        font-size: ${size}rem;
+        animation-duration: ${duration}s;
+        animation-delay: ${delay}s;
+      `;
+
+      container.appendChild(el);
+      setTimeout(() => el.remove(), (duration + delay) * 1000);
+    }
+
+
+    for (let i = 0; i < 12; i++) spawnPaw();
+    setInterval(spawnPaw, 1200);
+  </script>
+</body>
+</html>

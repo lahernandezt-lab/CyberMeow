@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crea tu Gatico 🐾</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/crear_gatico.css') }}">
+</head>
+<body>
+
+<div class="auth-bg"><canvas id="bgCanvas"></canvas></div>
+
+<div class="container">
+  <div class="title">
+    <h1>CyberMeow</h1>
+    <p>¡Hola {{ usuario }}! Elige cómo será tu compañero</p>
+  </div>
+
+  <div class="creator-layout">
+
+
+    <div class="preview-panel">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+
+
+    <div class="custom-panel">
+
+      <div class="tabs" id="tabsBtns">
+        <button class="tab-btn active" data-tab="color"> Color</button>
+        <button class="tab-btn"        data-tab="sombrero"> Sombrero</button>
+        <button class="tab-btn"        data-tab="collar"> Collar</button>
+        <button class="tab-btn"        data-tab="genero"> Género</button>
+      </div>
+
+      <div class="current-label" id="currentLabel">Color: <strong>Naranja</strong></div>
+
+      <div class="options-panel" id="optionsPanel"></div>
+
+      <button class="btn-submit" id="btnSubmit"> ¡Despertar en el Hotel!</button>
+
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+
+<script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+
+
+<script>
+  const PREVIEW_USERNAME = {{ usuario | tojson }};
+  const SESSION_USER_ID  = {{ user_id | tojson }};
+</script>
+
+
+<script type="module">
+
+
+  await new Promise(resolve => {
+    if (typeof THREE !== 'undefined') { resolve(); return; }
+    const iv = setInterval(() => {
+      if (typeof THREE !== 'undefined') { clearInterval(iv); resolve(); }
+    }, 30);
+  });
+
+  const { GaticoFactory } = await import('/static/js/gaticos/GaticoFactory.js');
+  const { GATICO_COLORS } = await import('/static/js/gaticos/GaticoColors.js');
+
+
+  const SOMBREROS = {
+    ninguno:       { label: 'Sin sombrero',     icon: '🚫' },
+    cumpleanos:    { label: 'Cumpleaños',        icon: '🎂' },
+    negro:         { label: 'Sombrero Negro',    icon: '🎩' },
+    paja:          { label: 'Sombrero de Paja',  icon: '👒' },
+    casco_militar: { label: 'Casco Militar',     icon: '🪖' },
+    gorra:         { label: 'Gorra',             icon: '🧢' },
+  };
+
+  const COLLARES = {
+    ninguno:      { label: 'Sin collar',   icon: '🚫' },
+    rojo:         { label: 'Collar Rojo',  icon: '🔴' },
+    azul:         { label: 'Collar Azul',  icon: '🔵' },
+    corbata_roja: { label: 'Corbata Roja', icon: '👔' },
+    corbata_azul: { label: 'Corbata Azul', icon: '🔷' },
+  };
+
+
+
+  const estado = {
+    color:    'naranja',
+    sombrero: 'ninguno',
+    collar:   'ninguno',
+    genero:   null,
+  };
+
+
+
+  function iniciarPreview() {
+    const canvas = document.getElementById('previewCanvas');
+    const parent = canvas.parentElement;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xF5EFEA);
+
+    const camera = new THREE.OrthographicCamera(-1.8, 1.8, 1.8, -1.8, 0.1, 50);
+    camera.position.set(4, 4, 4);
+    camera.lookAt(0, 0.4, 0);
+
+    scene.add(new THREE.AmbientLight(0xFFF2E6, 0.9));
+    const sun = new THREE.DirectionalLight(0xFFFFFF, 0.6);
+    sun.position.set(4, 8, 4);
+    sun.castShadow = true;
+    scene.add(sun);
+
+    function redimensionar() {
+      const w = parent.clientWidth;
+      const h = parent.clientHeight;
+      renderer.setSize(w, h);
+    }
+    window.addEventListener('resize', redimensionar);
+    redimensionar();
+
+    return { renderer, scene, camera };
+  }
+
+  function crearGaticoPreview(scene) {
+    return GaticoFactory.crear({
+      nombre:   PREVIEW_USERNAME,
+      color:    estado.color,
+      genero:   estado.genero || 'Macho',
+      sombrero: estado.sombrero,
+      collar:   estado.collar,
+      scene,
+    });
+  }
+
+  function reconstruirGatico(scene, gatico) {
+    gatico.destroy();
+    const nuevo = crearGaticoPreview(scene);
+    nuevo.setPosition(0, 0, 0);
+    return nuevo;
+  }
+
+
+  function renderTabColor(panel, label, gatico) {
+    label.innerHTML = `Color: <strong>${GATICO_COLORS[estado.color]?.label ?? 'Naranja'}</strong>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'color-grid';
+
+    Object.entries(GATICO_COLORS).forEach(([key, data]) => {
+      const chip = document.createElement('div');
+      chip.className = 'color-chip' + (key === estado.color ? ' selected' : '');
+      chip.title = data.label;
+      chip.style.background = '#' + data.hex.toString(16).padStart(6, '0');
+
+      chip.addEventListener('click', () => {
+        estado.color = key;
+        gatico.setColor(key);
+        label.innerHTML = `Color: <strong>${data.label}</strong>`;
+        panel.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      });
+
+      grid.appendChild(chip);
+    });
+
+    panel.appendChild(grid);
+  }
+
+  function renderTabAccesorio(panel, label, catalogo, campo, prefijo, scene, gaticRef) {
+    const actual = catalogo[estado[campo]];
+    label.innerHTML = `${prefijo}: <strong>${actual?.label ?? '—'}</strong>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'option-grid';
+
+    Object.entries(catalogo).forEach(([key, data]) => {
+      const card = document.createElement('div');
+      card.className = 'option-card' + (key === estado[campo] ? ' selected' : '');
+      card.innerHTML = `<span class="opt-icon">${data.icon}</span>${data.label}`;
+
+      card.addEventListener('click', () => {
+        estado[campo] = key;
+        gaticRef.gatico = reconstruirGatico(scene, gaticRef.gatico);
+        label.innerHTML = `${prefijo}: <strong>${data.label}</strong>`;
+        panel.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+
+      grid.appendChild(card);
+    });
+
+    panel.appendChild(grid);
+  }
+
+  function renderTabGenero(panel, label) {
+    label.innerHTML = estado.genero
+      ? `Género: <strong>${estado.genero}</strong>`
+      : `Género: <strong style="color:#FFA6C9">⚠ Elige uno (obligatorio)</strong>`;
+
+    const sel = document.createElement('div');
+    sel.className = 'gender-selector';
+
+    ['Macho', 'Hembra'].forEach(g => {
+      const btn = document.createElement('button');
+      btn.className = 'gender-btn' + (estado.genero === g ? ' selected' : '');
+      btn.textContent = g === 'Macho' ? '♂ Macho' : '♀ Hembra';
+
+      btn.addEventListener('click', () => {
+        estado.genero = g;
+        label.innerHTML = `Género: <strong>${g}</strong>`;
+        sel.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        marcarTabGenero();
+      });
+
+      sel.appendChild(btn);
+    });
+
+    panel.appendChild(sel);
+  }
+
+
+
+  function marcarTabGenero() {
+    const tabs = document.querySelectorAll('#tabsBtns .tab-btn');
+    const tabGenero = [...tabs].find(t => t.dataset.tab === 'genero');
+    if (!tabGenero) return;
+    tabGenero.textContent = estado.genero ? '⚥ Género ✓' : '⚥ Género ⚠';
+    tabGenero.style.borderColor = estado.genero ? '' : '#FFA6C9';
+  }
+
+  function activarTabs(scene, gaticRef) {
+    const panel = document.getElementById('optionsPanel');
+    const label = document.getElementById('currentLabel');
+    let tabActual = 'color';
+
+    function renderTab() {
+      panel.innerHTML = '';
+      if (tabActual === 'color')    renderTabColor(panel, label, gaticRef.gatico);
+      if (tabActual === 'sombrero') renderTabAccesorio(panel, label, SOMBREROS, 'sombrero', 'Sombrero', scene, gaticRef);
+      if (tabActual === 'collar')   renderTabAccesorio(panel, label, COLLARES,  'collar',   'Collar',   scene, gaticRef);
+      if (tabActual === 'genero')   renderTabGenero(panel, label);
+    }
+
+    document.querySelectorAll('#tabsBtns .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabActual = btn.dataset.tab;
+        document.querySelectorAll('#tabsBtns .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTab();
+      });
+    });
+
+    renderTab();
+    marcarTabGenero();
+  }
+
+
+
+  function activarSubmit() {
+    const btn = document.getElementById('btnSubmit');
+    let confirmando = false;
+
+    btn.addEventListener('click', async () => {
+
+      if (!estado.genero) {
+        const tabGenero = [...document.querySelectorAll('#tabsBtns .tab-btn')]
+          .find(t => t.dataset.tab === 'genero');
+        tabGenero?.click();
+        document.getElementById('currentLabel').innerHTML =
+          `Género: <strong style="color:#e05080">⚠ Debes escoger un género antes de continuar</strong>`;
+        return;
+      }
+
+      if (!confirmando) {
+        confirmando = true;
+        mostrarResumen();
+        btn.textContent = ' ¡Confirmar y Despertar!';
+        btn.style.background = 'linear-gradient(135deg, #a8e6c0, #6fd4a0)';
+        btn.style.color = '#2a5a3a';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Guardando...';
+
+      try {
+        const res = await fetch('/api/gaticos/crear', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id:  parseInt(SESSION_USER_ID),
+            username: PREVIEW_USERNAME,
+            color:    estado.color,
+            genero:   estado.genero,
+            sombrero: estado.sombrero,
+            collar:   estado.collar,
+          }),
+        });
+
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          const err = await res.json();
+          alert('Error: ' + err.error);
+          btn.disabled = false;
+          btn.textContent = ' ¡Confirmar y Despertar!';
+        }
+      } catch (e) {
+        alert('Error de red. Intenta de nuevo.');
+        btn.disabled = false;
+      }
+    });
+  }
+
+  function mostrarResumen() {
+    const colorLabel    = GATICO_COLORS[estado.color]?.label ?? estado.color;
+    const sombreroLabel = SOMBREROS[estado.sombrero]?.label  ?? 'Ninguno';
+    const collarLabel   = COLLARES[estado.collar]?.label     ?? 'Ninguno';
+
+    const div = document.createElement('div');
+    div.id = 'resumenGatico';
+    div.innerHTML = `
+      <div style="
+        background: rgba(255,255,255,0.9);
+        border: 2px solid #FFA6C9;
+        border-radius: 16px;
+        padding: 14px 18px;
+        margin-bottom: 10px;
+        font-size: .86rem;
+        line-height: 1.9;
+      ">
+        <div style="font-family:'Orbitron',sans-serif;font-size:.78rem;margin-bottom:6px;color:#FFA6C9">🐾 Tu Gatico</div>
+        <div> <b>Color:</b> ${colorLabel}</div>
+        <div>🎩 <b>Sombrero:</b> ${sombreroLabel}</div>
+        <div>🎀 <b>Collar:</b> ${collarLabel}</div>
+        <div>⚥ <b>Género:</b> ${estado.genero}</div>
+      </div>`;
+
+    const btn = document.getElementById('btnSubmit');
+    btn.parentElement.insertBefore(div, btn);
+  }
+
+
+
+  function iniciarLoop(renderer, scene, camera, gaticRef) {
+    let t = 0;
+    (function loop() {
+      requestAnimationFrame(loop);
+      t += 0.016;
+      gaticRef.gatico.update(t);
+      renderer.render(scene, camera);
+    })();
+  }
+
+  const { renderer, scene, camera } = iniciarPreview();
+
+  const gaticRef = { gatico: crearGaticoPreview(scene) };
+  gaticRef.gatico.setPosition(0, 0, 0);
+
+  activarTabs(scene, gaticRef);
+  activarSubmit();
+  iniciarLoop(renderer, scene, camera, gaticRef);
+
+</script>
+
+</body>
+</html>

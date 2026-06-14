@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberMeow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+  <div class="auth-bg"><canvas id="bgCanvas"></canvas></div>
+
+  <main class="auth-container">
+    <section class="auth-card auth-card--register">
+
+      <div class="avatar-container">
+        <div class="michi-avatar {% if exito %}michi-avatar--cyan{% else %}michi-avatar--pink{% endif %}">
+          {% if exito %}✅{% else %}⚠️{% endif %}
+        </div>
+      </div>
+
+      <div class="auth-logo">
+        <span class="logo-gem {% if exito %}logo-gem--cyan{% else %}logo-gem--pink{% endif %}">◈</span>
+        <span class="logo-name">Nuestro Espacio</span>
+      </div>
+
+      <h2 class="auth-title {% if exito %}auth-title--cyan{% else %}auth-title--pink{% endif %}">
+        {% if exito %}¡Cuenta verificada!{% else %}Enlace inválido{% endif %}
+      </h2>
+      <p class="auth-sub">{{ mensaje }}</p>
+
+      {% if exito %}
+        <a href="{{ url_for('auth.login_page') }}"
+           class="auth-btn auth-btn--cyan"
+           style="display:block;padding:12px;margin-top:8px;text-decoration:none;
+                  text-align:center;font-family:'Orbitron',sans-serif;
+                  font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">
+          Iniciar sesión
+        </a>
+      {% else %}
+        <a href="{{ url_for('auth.olvide_contrasena_page') }}"
+           class="auth-btn auth-btn--pink"
+           style="display:block;padding:12px;margin-top:8px;text-decoration:none;
+                  text-align:center;font-family:'Orbitron',sans-serif;
+                  font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">
+          Solicitar nuevo enlace
+        </a>
+      {% endif %}
+
+      <p class="auth-link">
+        <a href="{{ url_for('auth.login_page') }}">← Volver al login</a>
+      </p>
+
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/auth-bg.js') }}"></script>
+</body>
+</html>
